@@ -1,39 +1,91 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
         x:Class="HighlightForge.App.MainWindow"
-        Width="1180" Height="720" MinWidth="960" MinHeight="620"
+        Width="1280" Height="820" MinWidth="1040" MinHeight="700"
         Title="HighlightForge">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="32">
-    <Grid ColumnDefinitions="*,Auto">
-      <StackPanel Spacing="4">
-        <TextBlock Text="HighlightForge" FontSize="28" FontWeight="SemiBold" />
-        <TextBlock Text="Local gaming highlights, without sending your footage anywhere." Opacity="0.72" />
-      </StackPanel>
-      <Border Grid.Column="1" Background="#233A54" CornerRadius="16" Padding="12,5" VerticalAlignment="Top">
-        <TextBlock Text="LOCAL ONLY" FontSize="12" FontWeight="SemiBold" />
-      </Border>
-    </Grid>
-    <Border Grid.Row="1" Margin="0,32" Background="#15191F" CornerRadius="12" Padding="40">
-      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="620" Spacing="16">
-        <TextBlock Text="Start with an OBS recording" FontSize="24" HorizontalAlignment="Center" />
-        <TextBlock Text="HighlightForge will keep your original recordings untouched, inspect their separate audio tracks, and create a reviewable edit draft." TextWrapping="Wrap" TextAlignment="Center" Opacity="0.72" />
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-          <Button Content="Create a local project" Padding="24,12" Click="CreateProject_Click" />
-          <Button Content="Import OBS recording" Padding="24,12" Click="ImportRecording_Click" />
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Menu>
+      <MenuItem Header="_File">
+        <MenuItem Header="_New project…" Click="CreateProject_Click" />
+        <MenuItem Header="_Open project…" Click="OpenProject_Click" />
+        <MenuItem Header="_Save project" Click="SaveProject_Click" />
+        <Separator />
+        <MenuItem Header="_Import OBS recording…" Click="ImportRecording_Click" />
+        <Separator />
+        <MenuItem Header="E_xit" Click="Exit_Click" />
+      </MenuItem>
+    </Menu>
+
+    <Grid Grid.Row="1" Margin="24" RowDefinitions="Auto,*">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="3">
+          <TextBlock Text="HighlightForge" FontSize="28" FontWeight="SemiBold" />
+          <TextBlock Text="Local gaming highlights, without sending your footage anywhere." Opacity="0.72" />
         </StackPanel>
-        <TextBlock x:Name="StatusText" Text="Project format, media probe boundary, and local worker are ready." TextWrapping="Wrap" TextAlignment="Center" Opacity="0.55" />
-        <Border x:Name="ImportedPanel" IsVisible="False" Background="#202832" BorderBrush="#36516E" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,10,0,0">
-          <StackPanel Spacing="7">
-            <TextBlock Text="Imported recording" FontWeight="SemiBold" FontSize="18" />
-            <TextBlock x:Name="ImportedNameText" TextWrapping="Wrap" />
-            <TextBlock x:Name="ImportedMediaText" Opacity="0.75" TextWrapping="Wrap" />
-            <TextBlock x:Name="ImportedTracksText" Opacity="0.75" TextWrapping="Wrap" />
-            <TextBlock x:Name="ImportedTimelineText" Opacity="0.75" TextWrapping="Wrap" />
-            <TextBlock x:Name="ImportedProjectText" Opacity="0.55" TextWrapping="Wrap" />
+        <Border Grid.Column="1" Background="#233A54" CornerRadius="16" Padding="12,5" VerticalAlignment="Top">
+          <TextBlock Text="LOCAL ONLY" FontSize="12" FontWeight="SemiBold" />
+        </Border>
+      </Grid>
+
+      <Border x:Name="WelcomePanel" Grid.Row="1" Margin="0,24,0,0" Background="#15191F" CornerRadius="12" Padding="40">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="620" Spacing="16">
+          <TextBlock Text="Start with an OBS recording" FontSize="24" HorizontalAlignment="Center" />
+          <TextBlock Text="HighlightForge keeps original recordings untouched and creates a local project with separate audio tracks ready for review." TextWrapping="Wrap" TextAlignment="Center" Opacity="0.72" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+            <Button Content="Create a local project" Padding="24,12" Click="CreateProject_Click" />
+            <Button Content="Import OBS recording" Padding="24,12" Click="ImportRecording_Click" />
+          </StackPanel>
+          <TextBlock x:Name="StatusText" Text="Choose a recording to begin." TextWrapping="Wrap" TextAlignment="Center" Opacity="0.62" />
+        </StackPanel>
+      </Border>
+
+      <Grid x:Name="WorkspacePanel" Grid.Row="1" IsVisible="False" Margin="0,24,0,0" ColumnDefinitions="250,*,285" RowDefinitions="*,158" ColumnSpacing="14" RowSpacing="14">
+        <Border Background="#15191F" CornerRadius="10" Padding="16">
+          <StackPanel Spacing="12">
+            <TextBlock Text="Project" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock x:Name="ProjectNameText" TextWrapping="Wrap" />
+            <TextBlock Text="Media" FontWeight="SemiBold" Margin="0,10,0,0" />
+            <Button x:Name="SourceButton" HorizontalContentAlignment="Left" Click="SourceButton_Click" />
+            <TextBlock x:Name="ProjectPathText" FontSize="11" Opacity="0.55" TextWrapping="Wrap" />
+            <Button Content="Import another recording" Click="ImportRecording_Click" Margin="0,10,0,0" />
+            <Button Content="Save project" Click="SaveProject_Click" />
           </StackPanel>
         </Border>
-      </StackPanel>
-    </Border>
-    <TextBlock Grid.Row="2" Text="M0 Foundation • No footage or transcript leaves this device" Opacity="0.52" />
+
+        <Border Grid.Column="1" Background="#090B0E" CornerRadius="10" ClipToBounds="True">
+          <vlc:VideoView x:Name="VideoView" />
+        </Border>
+
+        <Border Grid.Column="2" Background="#15191F" CornerRadius="10" Padding="16">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Track inspector" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock x:Name="MediaDetailsText" TextWrapping="Wrap" Opacity="0.75" />
+            <TextBlock Text="Audio tracks" FontWeight="SemiBold" Margin="0,8,0,0" />
+            <TextBlock x:Name="AudioTracksText" TextWrapping="Wrap" Opacity="0.75" />
+            <TextBlock x:Name="ProjectStatusText" TextWrapping="Wrap" Opacity="0.55" Margin="0,8,0,0" />
+          </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#15191F" CornerRadius="10" Padding="16">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Timeline" FontSize="18" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="1" x:Name="TimelineDurationText" Opacity="0.65" />
+            </Grid>
+            <Border Grid.Row="1" Background="#26374A" CornerRadius="6" Padding="12" MinHeight="58">
+              <TextBlock x:Name="TimelineClipText" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+              <Button Content="Go to start" Click="GoToStart_Click" />
+              <Button x:Name="PlayPauseButton" Content="Play" Click="PlayPause_Click" />
+              <Button Content="Save project" Click="SaveProject_Click" />
+            </StackPanel>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <TextBlock Grid.Row="2" Margin="24,0,24,16" x:Name="FooterStatusText" Text="No footage or transcript leaves this device." Opacity="0.52" />
   </Grid>
 </Window>
