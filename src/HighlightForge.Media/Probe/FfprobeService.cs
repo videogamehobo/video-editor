@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using HighlightForge.Core.Domain;
+using HighlightForge.Core.Diagnostics;
 using HighlightForge.Media.Runtime;
 
 namespace HighlightForge.Media.Probe;
@@ -31,6 +32,7 @@ public sealed class FfprobeService
         startInfo.ArgumentList.Add("-of");
         startInfo.ArgumentList.Add("json");
         startInfo.ArgumentList.Add(absolutePath);
+        await HighlightForgeLog.InfoAsync($"Starting FFprobe for '{absolutePath}' using '{startInfo.FileName}'.", cancellationToken);
 
         Process process;
         try
@@ -39,6 +41,7 @@ public sealed class FfprobeService
         }
         catch (System.ComponentModel.Win32Exception exception) when (exception.NativeErrorCode is 2 or 3)
         {
+            await HighlightForgeLog.ErrorAsync("FFprobe executable could not be started.", exception, cancellationToken);
             throw new InvalidOperationException(FfmpegRuntime.MissingRuntimeMessage, exception);
         }
         using (process)
@@ -50,8 +53,10 @@ public sealed class FfprobeService
             var error = await errorTask;
             if (process.ExitCode != 0)
             {
+                await HighlightForgeLog.InfoAsync($"FFprobe failed with exit code {process.ExitCode}: {error.Trim()}", cancellationToken);
                 throw new InvalidOperationException($"FFprobe could not inspect this recording: {error.Trim()}");
             }
+            await HighlightForgeLog.InfoAsync($"FFprobe completed for '{absolutePath}'.", cancellationToken);
             return Parse(absolutePath, output);
         }
     }

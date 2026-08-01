@@ -48,6 +48,20 @@ public sealed class FfmpegRuntimeTests
             File.Delete(bundled);
         }
     }
+
+    [Fact]
+    public void ResolverFindsAnExecutableRegisteredAsAnAdditionalPathCandidate()
+    {
+        var executable = Path.GetTempFileName();
+        try
+        {
+            Assert.Equal(executable, FfmpegRuntime.Resolve("ffprobe.exe", null, [executable]));
+        }
+        finally
+        {
+            File.Delete(executable);
+        }
+    }
 }
 
 public sealed class EditingCoreTests

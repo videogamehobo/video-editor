@@ -21,3 +21,7 @@ dotnet run --project src/HighlightForge.App
 ```
 
 Source recordings are referenced in the project and never copied, moved, or altered. Generated proxies, analysis data, and thumbnails belong in each project's disposable `cache` directory.
+
+## Diagnostics
+
+Import attempts and unexpected application errors are written to `%LOCALAPPDATA%\HighlightForge\logs\highlightforge-YYYY-MM-DD.log`. Include this log when reporting a problem; source footage is never copied into it.

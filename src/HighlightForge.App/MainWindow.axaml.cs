@@ -5,6 +5,7 @@ using HighlightForge.Core.Domain;
 using HighlightForge.Core.Persistence;
 using HighlightForge.Media.Import;
 using HighlightForge.Media.Runtime;
+using HighlightForge.Core.Diagnostics;
 
 namespace HighlightForge.App;
 
@@ -42,15 +43,17 @@ public partial class MainWindow : Window
         if (files.Count == 0) return;
         try
         {
+            await HighlightForgeLog.InfoAsync($"Import requested for '{files[0].Path.LocalPath}'.");
             var imported = await SourceImportService.ImportAsync(files[0].Path.LocalPath);
             var tracks = string.Join(", ", imported.SuggestedTrackMapping.Suggestions.Select(track => $"{track.Role} ({track.Confidence:P0})"));
             StatusText.Text = $"Imported {Path.GetFileName(imported.Source.AbsolutePath)} • {imported.Source.Width}×{imported.Source.Height} • suggested tracks: {tracks}";
         }
         catch (Exception exception)
         {
+            await HighlightForgeLog.ErrorAsync("OBS recording import failed.", exception);
             StatusText.Text = exception.Message.Contains("FFmpeg is required", StringComparison.Ordinal)
                 ? $"Import needs setup: {FfmpegRuntime.MissingRuntimeMessage}"
-                : $"Import failed: {exception.Message}";
+                : $"Import failed: {exception.Message} Log: {HighlightForgeLog.CurrentLogPath}";
         }
     }
 }
