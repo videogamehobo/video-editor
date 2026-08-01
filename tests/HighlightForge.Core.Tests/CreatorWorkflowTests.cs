@@ -5,6 +5,7 @@ using HighlightForge.Core.Domain;
 using HighlightForge.Core.Preferences;
 using HighlightForge.Core.Voiceover;
 using HighlightForge.Media.Audio;
+using HighlightForge.Media.Render;
 
 namespace HighlightForge.Core.Tests;
 
