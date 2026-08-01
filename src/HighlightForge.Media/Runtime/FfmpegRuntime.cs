@@ -11,6 +11,7 @@ public static class FfmpegRuntime
         var candidates = new List<string>
         {
             Path.Combine(AppContext.BaseDirectory, "tools", "ffmpeg", executableName),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "tools", "ffmpeg", executableName)),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HighlightForge", "tools", "ffmpeg", executableName)
         };
         if (additionalCandidates is not null) candidates.AddRange(additionalCandidates);
@@ -30,5 +31,5 @@ public static class FfmpegRuntime
     }
 
     public static string MissingRuntimeMessage =>
-        "FFmpeg is required to inspect OBS recordings. Install an LGPL FFmpeg build, restart HighlightForge, or set HIGHLIGHTFORGE_FFPROBE_PATH to the full path of ffprobe.exe.";
+        "FFmpeg is required to inspect and render OBS recordings. Repair the HighlightForge installation, install an LGPL FFmpeg build, or set HIGHLIGHTFORGE_FFMPEG_PATH and HIGHLIGHTFORGE_FFPROBE_PATH to the full executable paths.";
 }

@@ -44,16 +44,34 @@
         </StackPanel>
       </Border>
 
-      <Grid x:Name="WorkspacePanel" Grid.Row="1" IsVisible="False" Margin="0,24,0,0" ColumnDefinitions="250,*,370" RowDefinitions="*,230" ColumnSpacing="14" RowSpacing="14">
+      <Grid x:Name="WorkspacePanel" Grid.Row="1" IsVisible="False" Margin="0,24,0,0" ColumnDefinitions="250,*,370" RowDefinitions="*,300" ColumnSpacing="14" RowSpacing="14">
         <Border Background="#15191F" CornerRadius="10" Padding="16">
           <StackPanel Spacing="12">
             <TextBlock Text="Project" FontSize="18" FontWeight="SemiBold" />
             <TextBlock x:Name="ProjectNameText" TextWrapping="Wrap" />
             <TextBlock Text="Media" FontWeight="SemiBold" Margin="0,10,0,0" />
-            <Button x:Name="SourceButton" HorizontalContentAlignment="Left" Click="SourceButton_Click" />
+            <ListBox x:Name="SourceListBox" MaxHeight="100" SelectionChanged="SourceListBox_SelectionChanged" />
+            <Button x:Name="SourceButton" Content="Open selected source" HorizontalContentAlignment="Left" Click="SourceButton_Click" />
             <TextBlock x:Name="ProjectPathText" FontSize="11" Opacity="0.55" TextWrapping="Wrap" />
             <Button Content="Import another recording" Click="ImportRecording_Click" Margin="0,10,0,0" />
             <Button Content="Save project" Click="SaveProject_Click" />
+            <TextBlock Text="Preview cache" FontWeight="SemiBold" Margin="0,10,0,0" />
+            <TextBlock x:Name="MediaCacheStatusText" Text="Proxy, thumbnails, and waveform not checked." TextWrapping="Wrap" Opacity="0.65" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button x:Name="GenerateCacheButton" Content="Build" Click="GenerateCache_Click" />
+              <Button x:Name="CancelCacheButton" Content="Cancel" IsEnabled="False" Click="CancelCache_Click" />
+            </StackPanel>
+            <ProgressBar x:Name="MediaCacheProgressBar" Minimum="0" Maximum="100" />
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" MaxHeight="64">
+              <ItemsControl x:Name="ThumbnailStrip">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate><Image Source="{Binding}" Width="88" Height="50" Stretch="UniformToFill" Margin="0,0,5,0" /></DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
           </StackPanel>
         </Border>
 
@@ -67,18 +85,33 @@
               <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="10" Margin="0,12,0,0">
                   <TextBlock Text="Local intelligence" FontSize="18" FontWeight="SemiBold" />
-                  <ComboBox x:Name="AnalysisModeBox" SelectedIndex="1">
+                  <ComboBox x:Name="AnalysisModeBox" SelectedIndex="1" SelectionChanged="AnalysisMode_SelectionChanged">
                     <ComboBoxItem Content="Fast" />
                     <ComboBoxItem Content="Balanced" />
                     <ComboBoxItem Content="Deep" />
                   </ComboBox>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button x:Name="AnalyzeButton" Content="Analyze &amp; build draft" Click="Analyze_Click" />
-                    <Button x:Name="CancelAnalysisButton" Content="Cancel" IsEnabled="False" Click="CancelAnalysis_Click" />
+                    <Button x:Name="CancelAnalysisButton" Content="Pause" IsEnabled="False" Click="CancelAnalysis_Click" />
                   </StackPanel>
                   <ProgressBar x:Name="AnalysisProgressBar" Minimum="0" Maximum="100" Value="0" />
                   <TextBlock Text="Ranked candidates" FontWeight="SemiBold" Margin="0,5,0,0" />
                   <ListBox x:Name="CandidateList" MinHeight="105" MaxHeight="170" SelectionChanged="CandidateList_SelectionChanged" />
+                  <WrapPanel Orientation="Horizontal">
+                    <Button Content="Accept" Click="AcceptCandidate_Click" Margin="0,0,6,6" />
+                    <Button Content="Reject" Click="RejectCandidate_Click" Margin="0,0,6,6" />
+                    <Button Content="Regenerate draft" Click="RegenerateDraft_Click" Margin="0,0,6,6" />
+                  </WrapPanel>
+                  <TextBlock Text="Local style preferences (0.5–2.0)" FontWeight="SemiBold" />
+                  <WrapPanel Orientation="Horizontal">
+                    <TextBlock Text="Funny" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="FunnyWeightBox" Minimum="0.5" Maximum="2" Increment="0.1" Value="1" Width="64" Margin="0,0,8,6" />
+                    <TextBlock Text="Action" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="ActionWeightBox" Minimum="0.5" Maximum="2" Increment="0.1" Value="1" Width="64" Margin="0,0,8,6" />
+                    <TextBlock Text="Story" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="StoryWeightBox" Minimum="0.5" Maximum="2" Increment="0.1" Value="1" Width="64" Margin="0,0,8,6" />
+                    <Button Content="Apply style" Click="ApplyStylePreferences_Click" Margin="0,0,6,6" />
+                  </WrapPanel>
                   <TextBlock Text="Track inspector" FontWeight="SemiBold" Margin="0,5,0,0" />
                   <TextBlock x:Name="MediaDetailsText" TextWrapping="Wrap" Opacity="0.75" />
                   <TextBlock Text="Audio tracks" FontWeight="SemiBold" Margin="0,8,0,0" />
@@ -105,7 +138,8 @@
                   <TextBlock Text="Audio is extracted only to this project's disposable cache. Transcription runs on this device." TextWrapping="Wrap" Opacity="0.65" />
                   <TextBlock x:Name="ModelStatusText" Text="Checking local model…" TextWrapping="Wrap" />
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button x:Name="InstallModelButton" Content="Install selected model" Click="InstallModel_Click" />
+                    <Button x:Name="InstallModelButton" Content="Install selected local model pack" Click="InstallModel_Click" />
+                    <Button Content="Roll back" Click="RollbackModel_Click" />
                     <Button x:Name="TranscribeButton" Content="Transcribe" Click="Transcribe_Click" />
                     <Button x:Name="CancelCreatorButton" Content="Cancel" IsEnabled="False" Click="CancelCreator_Click" />
                   </StackPanel>
@@ -117,6 +151,18 @@
                   </Grid>
                   <TextBox x:Name="CaptionTextBox" PlaceholderText="Select a caption to edit" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="55" />
                   <Button Content="Save caption edit" Click="UpdateCaption_Click" />
+                  <TextBlock Text="Burn-in style" FontWeight="SemiBold" Margin="0,5,0,0" />
+                  <WrapPanel Orientation="Horizontal">
+                    <TextBox x:Name="CaptionFontBox" Text="Inter" Width="105" PlaceholderText="Font" Margin="0,0,6,6" />
+                    <NumericUpDown x:Name="CaptionFontSizeBox" Minimum="18" Maximum="96" Increment="1" Value="42" Width="64" Margin="0,0,6,6" />
+                    <TextBox x:Name="CaptionColorBox" Text="#FFFFFF" Width="82" PlaceholderText="#RRGGBB" Margin="0,0,6,6" />
+                    <ComboBox x:Name="CaptionPlacementBox" SelectedIndex="0" Width="92" Margin="0,0,6,6">
+                      <ComboBoxItem Content="Bottom" />
+                      <ComboBoxItem Content="Middle" />
+                      <ComboBoxItem Content="Top" />
+                    </ComboBox>
+                    <Button Content="Save style" Click="SaveCaptionStyle_Click" Margin="0,0,6,6" />
+                  </WrapPanel>
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button Content="Export SRT…" Click="ExportSrt_Click" />
                     <Button Content="Export VTT…" Click="ExportVtt_Click" />
@@ -150,7 +196,52 @@
                   </StackPanel>
                   <ProgressBar x:Name="AudioProgressBar" Minimum="0" Maximum="100" />
                   <ListBox x:Name="LoudnessList" MinHeight="100" MaxHeight="160" />
+                  <TextBlock Text="Manual mix controls" FontWeight="SemiBold" />
+                  <WrapPanel Orientation="Horizontal">
+                    <TextBlock Text="Mic dB" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="MicrophoneGainBox" Minimum="-24" Maximum="12" Increment="0.5" Value="0" Width="66" Margin="0,0,8,6" />
+                    <TextBlock Text="Game dB" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="GameGainBox" Minimum="-24" Maximum="12" Increment="0.5" Value="0" Width="66" Margin="0,0,8,6" />
+                    <TextBlock Text="Duck dB" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="DuckingGainBox" Minimum="-24" Maximum="0" Increment="1" Value="-10" Width="66" Margin="0,0,8,6" />
+                    <TextBlock Text="Attack ms" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="DuckingAttackBox" Minimum="5" Maximum="2000" Increment="5" Value="60" Width="76" Margin="0,0,8,6" />
+                    <TextBlock Text="Release ms" VerticalAlignment="Center" Margin="0,0,4,6" />
+                    <NumericUpDown x:Name="DuckingReleaseBox" Minimum="20" Maximum="5000" Increment="10" Value="450" Width="80" Margin="0,0,8,6" />
+                    <Button Content="Save mix" Click="SaveAudioMix_Click" Margin="0,0,6,6" />
+                  </WrapPanel>
                   <TextBlock x:Name="AudioPlanText" Text="Measure the selected tracks to create a conservative mastering plan." TextWrapping="Wrap" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Export">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="9" Margin="0,12,0,0">
+                  <TextBlock Text="Export edited timeline" FontSize="18" FontWeight="SemiBold" />
+                  <ComboBox x:Name="ExportKindBox" SelectedIndex="0">
+                    <ComboBoxItem Content="Long-form 16:9" />
+                    <ComboBoxItem Content="Vertical Short 9:16" />
+                  </ComboBox>
+                  <ComboBox x:Name="VerticalCompositionBox" SelectedIndex="0">
+                    <ComboBoxItem Content="Full frame over blurred background (safe)" />
+                    <ComboBoxItem Content="Focused crop (manual position)" />
+                  </ComboBox>
+                  <TextBlock Text="Manual horizontal crop focus" Opacity="0.65" />
+                  <Slider x:Name="FocusXSlider" Minimum="0" Maximum="1" Value="0.5" TickFrequency="0.05" />
+                  <CheckBox x:Name="BurnInCaptionsCheck" Content="Burn styled captions into video" IsChecked="True" />
+                  <CheckBox x:Name="WriteSrtCheck" Content="Write SRT sidecar" IsChecked="True" />
+                  <CheckBox x:Name="WriteVttCheck" Content="Write VTT sidecar" IsChecked="True" />
+                  <CheckBox x:Name="PreferNvidiaCheck" Content="Prefer NVIDIA acceleration; fall back automatically" IsChecked="True" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Suggest metadata" Click="SuggestMetadata_Click" />
+                    <Button x:Name="ExportButton" Content="Choose output &amp; export…" Click="Export_Click" />
+                    <Button x:Name="CancelExportButton" Content="Cancel" IsEnabled="False" Click="CancelExport_Click" />
+                  </StackPanel>
+                  <ProgressBar x:Name="ExportProgressBar" Minimum="0" Maximum="100" />
+                  <TextBox x:Name="SuggestedTitleTextBox" PlaceholderText="Suggested title" />
+                  <TextBox x:Name="SuggestedDescriptionTextBox" PlaceholderText="Suggested description" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="65" />
+                  <TextBox x:Name="SuggestedChaptersTextBox" PlaceholderText="Suggested chapters" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="90" />
+                  <TextBlock Text="Export only: HighlightForge never uploads to YouTube or Twitch." TextWrapping="Wrap" Opacity="0.55" />
                 </StackPanel>
               </ScrollViewer>
             </TabItem>
@@ -158,13 +249,16 @@
         </Border>
 
         <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#15191F" CornerRadius="10" Padding="16">
-          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+          <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="8">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Text="Timeline" FontSize="18" FontWeight="SemiBold" />
               <TextBlock Grid.Column="1" x:Name="TimelineDurationText" Opacity="0.65" />
             </Grid>
-            <ListBox x:Name="TimelineClipsList" Grid.Row="1" Background="#26374A" MinHeight="90" SelectionChanged="TimelineClipsList_SelectionChanged" />
-            <WrapPanel Grid.Row="2" Orientation="Horizontal">
+            <Border Grid.Row="1" Background="#0E1822" CornerRadius="4" Height="52" ClipToBounds="True">
+              <Image x:Name="WaveformImage" Stretch="Fill" Opacity="0.8" />
+            </Border>
+            <ListBox x:Name="TimelineClipsList" Grid.Row="2" Background="#26374A" MinHeight="80" SelectionChanged="TimelineClipsList_SelectionChanged" />
+            <WrapPanel Grid.Row="3" Orientation="Horizontal">
               <Button Content="Go to start" Click="GoToStart_Click" Margin="0,0,8,8" />
               <Button x:Name="PlayPauseButton" Content="Play" Click="PlayPause_Click" Margin="0,0,8,8" />
               <Button Content="Split at playhead" Click="SplitClip_Click" Margin="0,0,8,8" />
@@ -175,6 +269,22 @@
               <Button Content="Ripple delete" Click="DeleteClip_Click" Margin="0,0,8,8" />
               <Button Content="Undo" Click="Undo_Click" Margin="0,0,8,8" />
               <Button Content="Redo" Click="Redo_Click" Margin="0,0,8,8" />
+            </WrapPanel>
+            <WrapPanel Grid.Row="4" Orientation="Horizontal">
+              <TextBlock Text="Gain dB" VerticalAlignment="Center" Margin="0,0,4,8" />
+              <NumericUpDown x:Name="ClipGainBox" Minimum="-24" Maximum="12" Increment="0.5" Value="0" Width="70" Margin="0,0,8,8" />
+              <TextBlock Text="Fade in" VerticalAlignment="Center" Margin="0,0,4,8" />
+              <NumericUpDown x:Name="ClipFadeInBox" Minimum="0" Maximum="5" Increment="0.1" Value="0" Width="64" Margin="0,0,8,8" />
+              <TextBlock Text="out" VerticalAlignment="Center" Margin="0,0,4,8" />
+              <NumericUpDown x:Name="ClipFadeOutBox" Minimum="0" Maximum="5" Increment="0.1" Value="0" Width="64" Margin="0,0,8,8" />
+              <CheckBox x:Name="ClipPunchZoomCheck" Content="Punch zoom" Margin="0,0,8,8" />
+              <TextBlock Text="Crop" VerticalAlignment="Center" Margin="0,0,4,8" />
+              <NumericUpDown x:Name="ClipCropScaleBox" Minimum="1" Maximum="1.2" Increment="0.01" Value="1" Width="64" Margin="0,0,8,8" />
+              <TextBlock Text="Focus X/Y" VerticalAlignment="Center" Margin="0,0,4,8" />
+              <NumericUpDown x:Name="ClipReframeXBox" Minimum="0" Maximum="1" Increment="0.05" Value="0.5" Width="60" Margin="0,0,4,8" />
+              <NumericUpDown x:Name="ClipReframeYBox" Minimum="0" Maximum="1" Increment="0.05" Value="0.5" Width="60" Margin="0,0,8,8" />
+              <Button Content="Apply clip settings" Click="ApplyClipAdjustments_Click" Margin="0,0,8,8" />
+              <Button x:Name="ToggleClipLockButton" Content="Lock clip" Click="ToggleClipLock_Click" Margin="0,0,8,8" />
             </WrapPanel>
           </Grid>
         </Border>

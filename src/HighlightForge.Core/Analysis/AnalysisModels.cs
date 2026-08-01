@@ -26,7 +26,7 @@ public sealed record FeatureEvent(FeatureKind Kind, TimeSpan Start, TimeSpan End
 
 public sealed record SelectionReason(FeatureKind Kind, double Contribution, string Detail);
 
-public sealed record HighlightCandidate(TimeSpan SourceIn, TimeSpan SourceOut, double Score, IReadOnlyList<SelectionReason> Reasons)
+public sealed record HighlightCandidate(TimeSpan SourceIn, TimeSpan SourceOut, double Score, IReadOnlyList<SelectionReason> Reasons, Guid Id = default)
 {
     public TimeSpan Duration => SourceOut - SourceIn;
 }

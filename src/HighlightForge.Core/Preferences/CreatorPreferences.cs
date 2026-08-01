@@ -2,7 +2,12 @@ using System.Text.Json;
 
 namespace HighlightForge.Core.Preferences;
 
-public sealed record CreatorPreferences(double FunnyWeight = 1, double ActionWeight = 1, double StoryWeight = 1, IReadOnlySet<Guid>? RejectedCandidateIds = null);
+public sealed record CreatorPreferences(
+    double FunnyWeight = 1,
+    double ActionWeight = 1,
+    double StoryWeight = 1,
+    HashSet<Guid>? AcceptedCandidateIds = null,
+    HashSet<Guid>? RejectedCandidateIds = null);
 
 public sealed class CreatorPreferencesStore
 {
@@ -14,7 +19,9 @@ public sealed class CreatorPreferencesStore
     public async Task SaveAsync(CreatorPreferences preferences, CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        await File.WriteAllTextAsync(_path, JsonSerializer.Serialize(preferences, Options), cancellationToken);
+        var temporaryPath = $"{_path}.{Guid.NewGuid():N}.tmp";
+        await File.WriteAllTextAsync(temporaryPath, JsonSerializer.Serialize(preferences, Options), cancellationToken);
+        File.Move(temporaryPath, _path, overwrite: true);
     }
 
     public async Task<CreatorPreferences> LoadAsync(CancellationToken cancellationToken = default)

@@ -11,9 +11,18 @@ public sealed record CreatorWorkflowState(
     IReadOnlyList<CaptionCue> Captions,
     IReadOnlyList<VoiceoverTake> VoiceoverTakes,
     IReadOnlyList<AudioLoudnessMeasurement> LoudnessMeasurements,
-    DateTimeOffset ModifiedUtc)
+    DateTimeOffset ModifiedUtc,
+    CaptionStyleSettings? CaptionStyle = null,
+    AudioMixSettings? AudioSettings = null)
 {
-    public static CreatorWorkflowState Empty(Guid sourceId) => new(sourceId, [], [], [], DateTimeOffset.UtcNow);
+    public static CreatorWorkflowState Empty(Guid sourceId) => new(
+        sourceId,
+        [],
+        [],
+        [],
+        DateTimeOffset.UtcNow,
+        new CaptionStyleSettings(),
+        new AudioMixSettings());
 }
 
 public sealed class CreatorWorkflowStore

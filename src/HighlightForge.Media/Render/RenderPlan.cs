@@ -34,7 +34,7 @@ public static class RenderPlan
     }
 
     public static string VerticalVideoFilter() =>
-        "split[background][foreground];[background]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:1[blurred];[foreground]scale=1080:1920:force_original_aspect_ratio=decrease[gameplay];[blurred][gameplay]overlay=(W-w)/2:(H-h)/2";
+        "split[background][foreground];[background]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=20:steps=2[blurred];[foreground]scale=1080:1920:force_original_aspect_ratio=decrease[gameplay];[blurred][gameplay]overlay=(W-w)/2:(H-h)/2";
 }
 
 public sealed class RenderService

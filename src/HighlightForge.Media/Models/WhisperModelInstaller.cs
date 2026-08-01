@@ -28,13 +28,28 @@ public sealed class WhisperModelInstaller
         return status.IsInstalled ? WhisperModelCatalog.InstalledModelPath(_rootDirectory, pack) : null;
     }
 
+    public async Task<string?> GetActiveModelPathAsync(WhisperModelPack pack, CancellationToken cancellationToken = default)
+    {
+        var active = await _manager.GetActiveVersionAsync(pack.Manifest.Id, cancellationToken);
+        if (active is null) return null;
+        var modelFile = active.Manifest.Files.SingleOrDefault(file =>
+            string.Equals(file.RelativePath, pack.ModelFile.RelativePath, StringComparison.Ordinal));
+        return modelFile is null
+            ? null
+            : Path.GetFullPath(Path.Combine(_rootDirectory, active.Manifest.Id, active.Manifest.Version, modelFile.RelativePath));
+    }
+
     public async Task<string> InstallAsync(
         WhisperModelPack pack,
         IProgress<ModelDownloadProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
         var installed = await GetInstalledModelPathAsync(pack, cancellationToken);
-        if (installed is not null) return installed;
+        if (installed is not null)
+        {
+            await _manager.ActivateAsync(pack.Manifest, cancellationToken);
+            return installed;
+        }
 
         var stagingRoot = Path.Combine(_rootDirectory, ".staging");
         var stagingDirectory = Path.Combine(stagingRoot, Guid.NewGuid().ToString("N"));
@@ -70,6 +85,7 @@ public sealed class WhisperModelInstaller
             }
 
             await _manager.InstallFromDirectoryAsync(pack.Manifest, stagingDirectory, cancellationToken);
+            await _manager.ActivateAsync(pack.Manifest, cancellationToken);
             var modelPath = WhisperModelCatalog.InstalledModelPath(_rootDirectory, pack);
             await HighlightForgeLog.InfoAsync($"Installed verified local model pack at '{modelPath}'.", cancellationToken);
             return modelPath;

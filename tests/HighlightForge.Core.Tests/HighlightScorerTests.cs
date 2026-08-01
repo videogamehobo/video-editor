@@ -1,5 +1,6 @@
 using HighlightForge.Core.Analysis;
 using HighlightForge.Core.Persistence;
+using HighlightForge.Core.Preferences;
 
 namespace HighlightForge.Core.Tests;
 
@@ -25,6 +26,73 @@ public sealed class HighlightScorerTests : IDisposable
         Assert.Equal(FeatureKind.Laughter, candidates[0].Reasons[0].Kind);
         Assert.Equal(2, draft.Clips.Count);
         Assert.Contains(draft.Clips, clip => clip.Reasons.Any(reason => reason.Detail == "fight climax"));
+        Assert.NotEqual(Guid.Empty, candidates[0].Id);
+        Assert.Equal(candidates.MaxBy(candidate => candidate.Score)?.Id, draft.Clips[0].Id);
+    }
+
+    [Fact]
+    public void LocalPreferencesRerankAcceptAndRejectWithoutFineTuning()
+    {
+        var funny = HighlightScorer.EnsureIdentity(new HighlightCandidate(
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(20),
+            1,
+            [new SelectionReason(FeatureKind.Laughter, 0.7, "laugh")]));
+        var action = HighlightScorer.EnsureIdentity(new HighlightCandidate(
+            TimeSpan.FromSeconds(50),
+            TimeSpan.FromSeconds(60),
+            1,
+            [new SelectionReason(FeatureKind.GameAudioPeak, 0.7, "boss")]));
+        var preferences = new CreatorPreferences(
+            FunnyWeight: 0.5,
+            ActionWeight: 2,
+            AcceptedCandidateIds: new HashSet<Guid> { action.Id },
+            RejectedCandidateIds: new HashSet<Guid> { funny.Id });
+
+        var ranked = HighlightScorer.Rerank([funny, action], preferences);
+
+        var selected = Assert.Single(ranked);
+        Assert.Equal(action.Id, selected.Id);
+        Assert.True(selected.Score > action.Score);
+        Assert.Equal(action.Id, HighlightScorer.EnsureIdentity(action with { Id = Guid.Empty }).Id);
+    }
+
+    [Fact]
+    public void CandidateBoundariesDoNotCutThroughNearbySpeech()
+    {
+        var input = new AnalysisInput(TimeSpan.FromSeconds(60), AnalysisMode.Balanced,
+        [
+            new FeatureEvent(FeatureKind.Speech, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(9), 0.8, "setup sentence"),
+            new FeatureEvent(FeatureKind.GameAudioPeak, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(12), 0.9, "payoff"),
+            new FeatureEvent(FeatureKind.Speech, TimeSpan.FromSeconds(18), TimeSpan.FromSeconds(21), 0.8, "reaction sentence")
+        ]);
+
+        var candidate = Assert.Single(HighlightScorer.CreateCandidates(input));
+
+        Assert.Equal(TimeSpan.FromSeconds(5), candidate.SourceIn);
+        Assert.Equal(TimeSpan.FromSeconds(21), candidate.SourceOut);
+        Assert.Contains(candidate.Reasons, reason => reason.Detail == "payoff");
+    }
+
+    [Fact]
+    public void DraftDiversifiesRepeatedSignalTypesWhenScoresAreClose()
+    {
+        static HighlightCandidate Candidate(int second, double score, FeatureKind kind) => HighlightScorer.EnsureIdentity(new HighlightCandidate(
+            TimeSpan.FromSeconds(second),
+            TimeSpan.FromSeconds(second + 10),
+            score,
+            [new SelectionReason(kind, score, kind.ToString())]));
+        var candidates = new[]
+        {
+            Candidate(0, 1.0, FeatureKind.GameAudioPeak),
+            Candidate(120, 0.96, FeatureKind.GameAudioPeak),
+            Candidate(240, 0.90, FeatureKind.Laughter)
+        };
+
+        var draft = HighlightScorer.BuildDraft(candidates, TimeSpan.FromSeconds(20));
+
+        Assert.Contains(draft.Clips, clip => clip.Reasons[0].Kind == FeatureKind.GameAudioPeak);
+        Assert.Contains(draft.Clips, clip => clip.Reasons[0].Kind == FeatureKind.Laughter);
     }
 
     [Fact]

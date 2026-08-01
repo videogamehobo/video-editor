@@ -59,7 +59,12 @@ public sealed class AnalysisResultStore
         command.CommandText = "SELECT result_json FROM analysis_result WHERE source_id = $sourceId;";
         command.Parameters.AddWithValue("$sourceId", sourceId.ToString("D"));
         var json = await command.ExecuteScalarAsync(cancellationToken) as string;
-        return json is null ? null : JsonSerializer.Deserialize<LocalAnalysisResult>(json, SerializerOptions);
+        if (json is null) return null;
+        var result = JsonSerializer.Deserialize<LocalAnalysisResult>(json, SerializerOptions);
+        if (result is null) return null;
+        var ranked = result.RankedCandidates.Select(HighlightScorer.EnsureIdentity).ToArray();
+        var draftIds = result.Draft.Clips.Select(HighlightScorer.EnsureIdentity).ToArray();
+        return result with { RankedCandidates = ranked, Draft = result.Draft with { Clips = draftIds } };
     }
 
     private SqliteConnection OpenConnection() => new($"Data Source={_paths.DatabasePath};Pooling=False");

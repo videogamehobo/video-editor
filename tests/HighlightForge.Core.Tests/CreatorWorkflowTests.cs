@@ -31,6 +31,21 @@ public sealed class CreatorWorkflowTests : IDisposable
     }
 
     [Fact]
+    public void CaptionBurnInUsesEditableValidatedStyle()
+    {
+        var style = new CaptionStyleSettings("Arial", 48, "#12ABEF", "#010203", 4, CaptionPlacement.Top);
+
+        var ass = AssCaptionDocument.Create(
+            [new CaptionCue(TimeSpan.Zero, TimeSpan.FromSeconds(1), "Styled")],
+            vertical: false,
+            style);
+
+        Assert.Contains("Style: Default,Arial,48,&H00EFAB12", ass, StringComparison.Ordinal);
+        Assert.Contains(",4,1,8,", ass, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => new CaptionStyleSettings(PrimaryColor: "white").Validated());
+    }
+
+    [Fact]
     public void CaptionEditsPersistTextAndValidatedTimestamps()
     {
         var cues = new[] { new CaptionCue(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), "Old") };
@@ -40,7 +55,76 @@ public sealed class CreatorWorkflowTests : IDisposable
         Assert.Equal(TimeSpan.FromSeconds(1.5), updated[0].Start);
         Assert.Equal(TimeSpan.FromSeconds(3), updated[0].End);
         Assert.Equal("New text", updated[0].Text);
+        Assert.Null(updated[0].Words);
         Assert.Throws<ArgumentException>(() => CaptionDocument.UpdateCue(cues, 0, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(2), "Invalid"));
+    }
+
+    [Fact]
+    public void WordTimingIsGroupedIntoReadableCaptionCues()
+    {
+        var words = new[]
+        {
+            new CaptionWord(TimeSpan.Zero, TimeSpan.FromSeconds(0.4), "That"),
+            new CaptionWord(TimeSpan.FromSeconds(0.42), TimeSpan.FromSeconds(0.8), "was"),
+            new CaptionWord(TimeSpan.FromSeconds(0.82), TimeSpan.FromSeconds(1.2), "close!"),
+            new CaptionWord(TimeSpan.FromSeconds(2.1), TimeSpan.FromSeconds(2.5), "Again")
+        };
+
+        var cues = CaptionDocument.GroupWords(words);
+
+        Assert.Equal(2, cues.Count);
+        Assert.Equal("That was close!", cues[0].Text);
+        Assert.Equal(3, cues[0].Words!.Count);
+        Assert.Equal(TimeSpan.FromSeconds(2.1), cues[1].Start);
+    }
+
+    [Fact]
+    public void CaptionsFollowTrimmedAndReorderedTimelineClips()
+    {
+        var sourceId = Guid.NewGuid();
+        var cues = new[]
+        {
+            new CaptionCue(TimeSpan.FromSeconds(9), TimeSpan.FromSeconds(12), "Trimmed at the in point"),
+            new CaptionCue(TimeSpan.FromSeconds(21), TimeSpan.FromSeconds(22), "Second clip")
+        };
+        var timeline = new[]
+        {
+            new TimelineClip(Guid.NewGuid(), sourceId, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(25), TimeSpan.Zero),
+            new TimelineClip(Guid.NewGuid(), sourceId, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(5))
+        };
+
+        var mapped = CaptionTimelineMapper.MapToTimeline(cues, timeline, sourceId);
+
+        Assert.Equal("Second clip", mapped[0].Text);
+        Assert.Equal(TimeSpan.FromSeconds(1), mapped[0].Start);
+        Assert.Equal("Trimmed at the in point", mapped[1].Text);
+        Assert.Equal(TimeSpan.FromSeconds(5), mapped[1].Start);
+        Assert.Equal(TimeSpan.FromSeconds(7), mapped[1].End);
+    }
+
+    [Fact]
+    public void WordTimingFollowsTimelineTrimAndReorder()
+    {
+        var sourceId = Guid.NewGuid();
+        var cue = new CaptionCue(
+            TimeSpan.FromSeconds(9),
+            TimeSpan.FromSeconds(13),
+            "outside inside kept",
+            [
+                new CaptionWord(TimeSpan.FromSeconds(9), TimeSpan.FromSeconds(9.5), "outside"),
+                new CaptionWord(TimeSpan.FromSeconds(10.2), TimeSpan.FromSeconds(10.8), "inside"),
+                new CaptionWord(TimeSpan.FromSeconds(12), TimeSpan.FromSeconds(12.5), "kept")
+            ]);
+        var timeline = new[]
+        {
+            new TimelineClip(Guid.NewGuid(), sourceId, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(13), TimeSpan.FromSeconds(5))
+        };
+
+        var mapped = Assert.Single(CaptionTimelineMapper.MapToTimeline([cue], timeline, sourceId));
+
+        Assert.Equal(2, mapped.Words!.Count);
+        Assert.Equal(TimeSpan.FromSeconds(5.2), mapped.Words[0].Start);
+        Assert.Equal("kept", mapped.Words[1].Text);
     }
 
     [Fact]
@@ -51,6 +135,44 @@ public sealed class CreatorWorkflowTests : IDisposable
         var suggestion = Assert.Single(VoiceoverPlanner.Suggest(clips));
 
         Assert.Contains("boss fight finish", suggestion.TalkingPoint);
+    }
+
+    [Fact]
+    public void VoiceoverPlannerUsesLocalNarrativeForMatchingCandidate()
+    {
+        var candidate = HighlightScorer.EnsureIdentity(new HighlightCandidate(
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(20),
+            1.2,
+            [new SelectionReason(FeatureKind.GameAudioPeak, 0.8, "boss finish")]));
+        var narrative = new NarrativeSuggestion(candidate.Id, "Explain the risky choice before the final hit.");
+
+        var suggestion = Assert.Single(VoiceoverPlanner.Suggest([candidate], [narrative]));
+
+        Assert.Equal(narrative.TalkingPoint, suggestion.TalkingPoint);
+    }
+
+    [Fact]
+    public void VoiceoverSuggestionsFollowTrimmedAndReorderedTimeline()
+    {
+        var sourceId = Guid.NewGuid();
+        var candidates = new[]
+        {
+            new HighlightCandidate(TimeSpan.FromSeconds(31), TimeSpan.FromSeconds(40), 1.2, [new SelectionReason(FeatureKind.GameAudioPeak, 0.8, "boss finish")]),
+            new HighlightCandidate(TimeSpan.FromSeconds(11), TimeSpan.FromSeconds(18), 1.1, [new SelectionReason(FeatureKind.Motion, 0.7, "surprise")])
+        };
+        var timeline = new[]
+        {
+            new TimelineClip(Guid.NewGuid(), sourceId, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(36), TimeSpan.Zero),
+            new TimelineClip(Guid.NewGuid(), sourceId, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(6))
+        };
+
+        var suggestions = VoiceoverPlanner.SuggestForTimeline(candidates, timeline, sourceId);
+
+        Assert.Equal(TimeSpan.FromSeconds(1), suggestions[0].TimelinePosition);
+        Assert.Contains("boss finish", suggestions[0].TalkingPoint, StringComparison.Ordinal);
+        Assert.Equal(TimeSpan.FromSeconds(7), suggestions[1].TimelinePosition);
+        Assert.Equal(TimeSpan.FromSeconds(4), suggestions[1].MaximumDuration);
     }
 
     [Fact]
@@ -68,6 +190,27 @@ public sealed class CreatorWorkflowTests : IDisposable
         Assert.Contains("sidechaincompress", ducking, StringComparison.Ordinal);
         Assert.Contains("attack=60:release=450", ducking, StringComparison.Ordinal);
         Assert.DoesNotContain("makeup=", ducking, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ManualMixControlsChangeOnlyTheGeneratedMixPlan()
+    {
+        var microphone = new AudioTrack(2, "Microphone", 1, 48000, AudioTrackRole.Microphone);
+        var game = new AudioTrack(3, "Game", 2, 48000, AudioTrackRole.Game);
+        var settings = new AudioMixSettings(
+            DuckingDb: -14,
+            DuckingAttackMs: 75,
+            DuckingReleaseMs: 600,
+            MicrophoneGainDb: 2.5,
+            GameGainDb: -3);
+
+        var filter = AudioMixPlanner.BuildDiscreteDuckingFilter(microphone, game, settings);
+
+        Assert.Contains("volume=2.5dB[mic]", filter, StringComparison.Ordinal);
+        Assert.Contains("volume=-3dB[game]", filter, StringComparison.Ordinal);
+        Assert.Contains("ratio=8", filter, StringComparison.Ordinal);
+        Assert.Contains("attack=75:release=600", filter, StringComparison.Ordinal);
+        Assert.Throws<ArgumentOutOfRangeException>(() => (settings with { MicrophoneGainDb = 30 }).Validated());
     }
 
     [Fact]
@@ -97,12 +240,17 @@ public sealed class CreatorWorkflowTests : IDisposable
     public async Task PreferencesRemainLocalToTheProject()
     {
         var store = new CreatorPreferencesStore(_directory);
-        await store.SaveAsync(new CreatorPreferences(FunnyWeight: 1.3));
+        var accepted = Guid.NewGuid();
+        var rejected = Guid.NewGuid();
+        await store.SaveAsync(new CreatorPreferences(FunnyWeight: 1.3, AcceptedCandidateIds: new HashSet<Guid> { accepted }, RejectedCandidateIds: new HashSet<Guid> { rejected }));
 
         var loaded = await store.LoadAsync();
 
         Assert.Equal(1.3, loaded.FunnyWeight);
+        Assert.Contains(accepted, loaded.AcceptedCandidateIds ?? new HashSet<Guid>());
+        Assert.Contains(rejected, loaded.RejectedCandidateIds ?? new HashSet<Guid>());
         Assert.True(File.Exists(Path.Combine(_directory, "preferences.json")));
+        Assert.Empty(Directory.EnumerateFiles(_directory, "preferences.json.*.tmp"));
     }
 
     [Fact]
@@ -176,6 +324,8 @@ public sealed class CreatorWorkflowTests : IDisposable
         Assert.Equal(-21.5, measurement.IntegratedLufs);
         Assert.Contains("measured_I=-21.5", filter, StringComparison.Ordinal);
         Assert.Contains("TP=-1", filter, StringComparison.Ordinal);
+        Assert.Contains("linear=false", filter, StringComparison.Ordinal);
+        Assert.Contains("alimiter=limit=0.85:level=false", filter, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -213,6 +363,28 @@ public sealed class CreatorWorkflowTests : IDisposable
     }
 
     [Fact]
+    public async Task WhisperRollbackChangesTheModelPathUsedForTranscription()
+    {
+        var root = Path.Combine(_directory, "rollback-models");
+        var firstBytes = Encoding.UTF8.GetBytes("first model");
+        var secondBytes = Encoding.UTF8.GetBytes("second model");
+        var first = CreateTestPack("revision-1", firstBytes);
+        var second = CreateTestPack("revision-2", secondBytes);
+        using var firstClient = new HttpClient(new StaticResponseHandler(firstBytes));
+        using var secondClient = new HttpClient(new StaticResponseHandler(secondBytes));
+        await new WhisperModelInstaller(firstClient, root).InstallAsync(first);
+        var secondInstaller = new WhisperModelInstaller(secondClient, root);
+        await secondInstaller.InstallAsync(second);
+
+        await new ModelPackManager(root).RollbackAsync(first.Manifest.Id);
+        var activePath = await secondInstaller.GetActiveModelPathAsync(second);
+
+        Assert.NotNull(activePath);
+        Assert.Contains("revision-1", activePath, StringComparison.Ordinal);
+        Assert.Equal(firstBytes, await File.ReadAllBytesAsync(activePath));
+    }
+
+    [Fact]
     public void WhisperCatalogPinsEveryModelToAHashAndImmutableRevision()
     {
         Assert.All(WhisperModelCatalog.All, pack =>
@@ -226,6 +398,17 @@ public sealed class CreatorWorkflowTests : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(_directory)) Directory.Delete(_directory, recursive: true);
+    }
+
+    private static WhisperModelPack CreateTestPack(string version, byte[] bytes)
+    {
+        var file = new ModelFile("model.bin", Convert.ToHexString(SHA256.HashData(bytes)), "MIT");
+        return new WhisperModelPack(
+            AnalysisMode.Fast,
+            $"Test {version}",
+            new Uri($"https://models.invalid/{version}/model.bin"),
+            bytes.Length,
+            new ModelPackManifest("test-whisper-rollback", version, "Test", [file]));
     }
 
     private sealed class StaticResponseHandler(byte[] content) : HttpMessageHandler

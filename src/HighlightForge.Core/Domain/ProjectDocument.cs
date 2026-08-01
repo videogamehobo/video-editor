@@ -2,7 +2,7 @@ namespace HighlightForge.Core.Domain;
 
 public static class ProjectSchema
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 }
 
 public sealed record ProjectDocument(
@@ -49,4 +49,11 @@ public sealed record TimelineClip(
     TimeSpan SourceIn,
     TimeSpan SourceOut,
     TimeSpan TimelineIn,
-    bool IsLocked = false);
+    bool IsLocked = false,
+    double GainDb = 0,
+    TimeSpan FadeIn = default,
+    TimeSpan FadeOut = default,
+    bool PunchZoom = false,
+    double CropScale = 1,
+    double ReframeX = 0.5,
+    double ReframeY = 0.5);

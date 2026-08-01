@@ -98,13 +98,58 @@ public sealed class EditingCoreTests
     }
 
     [Fact]
-    public void ProxyCommandCreatesAudioFreeDisposableMp4()
+    public void MediaCacheProxyCreatesSeekableVideoWithOnePreviewAudioTrack()
     {
-        var arguments = ProxyGenerationService.BuildArguments(new ProxyRequest(Guid.NewGuid(), "source.mkv", "cache/proxy.mp4"));
+        var source = new MediaSource(
+            Guid.NewGuid(),
+            "source.mkv",
+            TimeSpan.FromMinutes(10),
+            1920,
+            1080,
+            60,
+            [new AudioTrack(1, "Main", 2, 48000, AudioTrackRole.Mixed)],
+            AudioRolesConfirmed: true);
+        var arguments = MediaCacheService.BuildProxyArguments(source, "cache/proxy.mp4");
 
-        Assert.Contains("-an", arguments);
         Assert.Contains("scale=-2:540", arguments);
+        Assert.Contains("0:1", arguments);
+        Assert.Contains("aac", arguments);
         Assert.Equal("cache/proxy.mp4", arguments[^1]);
+    }
+
+    [Fact]
+    public void ThumbnailAndWaveformCommandsStaySeparateFromTheSource()
+    {
+        var source = new MediaSource(
+            Guid.NewGuid(),
+            Path.Combine(Path.GetTempPath(), "original.mkv"),
+            TimeSpan.FromMinutes(10),
+            1920,
+            1080,
+            60,
+            [new AudioTrack(3, "Game", 2, 48000, AudioTrackRole.Game)],
+            AudioRolesConfirmed: true);
+
+        var thumbnails = MediaCacheService.BuildThumbnailArguments(source, Path.Combine(Path.GetTempPath(), "cache", "%06d.jpg"));
+        var waveform = MediaCacheService.BuildWaveformArguments(source, Path.Combine(Path.GetTempPath(), "cache", "waveform.png"));
+
+        Assert.Contains(thumbnails, argument => argument.Contains("prev_selected_t,30", StringComparison.Ordinal));
+        Assert.Contains(thumbnails, argument => argument.Contains("format=yuvj420p", StringComparison.Ordinal));
+        Assert.Contains(waveform, argument => argument.Contains("[0:3]", StringComparison.Ordinal));
+        Assert.Contains(waveform, argument => argument.Contains("showwavespic", StringComparison.Ordinal));
+        Assert.NotEqual(source.AbsolutePath, thumbnails[^1]);
+        Assert.NotEqual(source.AbsolutePath, waveform[^1]);
+    }
+
+    [Fact]
+    public void ProxyTimestampMapRoundTripsAndClampsToTheSourceWindow()
+    {
+        var map = new ProxyTimeMap(TimeSpan.FromSeconds(10), TimeSpan.Zero, TimeSpan.FromSeconds(30));
+
+        Assert.Equal(TimeSpan.FromSeconds(5), map.SourceToProxy(TimeSpan.FromSeconds(15)));
+        Assert.Equal(TimeSpan.FromSeconds(15), map.ProxyToSource(TimeSpan.FromSeconds(5)));
+        Assert.Equal(TimeSpan.Zero, map.SourceToProxy(TimeSpan.FromSeconds(2)));
+        Assert.Equal(TimeSpan.FromSeconds(40), map.ProxyToSource(TimeSpan.FromMinutes(2)));
     }
 
     [Fact]

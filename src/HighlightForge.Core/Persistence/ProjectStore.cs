@@ -145,6 +145,7 @@ public static class ProjectMigration
             version = version switch
             {
                 1 => MigrateVersion1To2(root),
+                2 => MigrateVersion2To3(root),
                 _ => throw new InvalidOperationException($"No migration exists for project schema {version}.")
             };
         }
@@ -162,5 +163,23 @@ public static class ProjectMigration
             }
         }
         return 2;
+    }
+
+    private static int MigrateVersion2To3(JsonObject root)
+    {
+        if (root["timeline"] is JsonArray timeline)
+        {
+            foreach (var clip in timeline.OfType<JsonObject>())
+            {
+                clip.TryAdd("gainDb", 0);
+                clip.TryAdd("fadeIn", "00:00:00");
+                clip.TryAdd("fadeOut", "00:00:00");
+                clip.TryAdd("punchZoom", false);
+                clip.TryAdd("cropScale", 1);
+                clip.TryAdd("reframeX", 0.5);
+                clip.TryAdd("reframeY", 0.5);
+            }
+        }
+        return 3;
     }
 }

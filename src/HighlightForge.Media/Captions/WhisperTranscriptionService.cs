@@ -57,22 +57,30 @@ public static class WhisperTranscriptionService
             progress?.Report(new TranscriptionProgress(0.05, $"Extracting {track.DisplayName} audio into the disposable project cache"));
             await ExtractAudioAsync(source.AbsolutePath, track.StreamIndex, wavPath, sourceStart, sourceLimit, cancellationToken);
 
-            var cues = new List<CaptionCue>();
-            using var processor = factory.CreateBuilder().WithLanguage("en").Build();
+            var words = new List<CaptionWord>();
+            using var processor = factory.CreateBuilder()
+                .WithLanguage("en")
+                .WithTokenTimestamps()
+                .SplitOnWord()
+                .Build();
             await using var audio = File.OpenRead(wavPath);
             await foreach (var segment in processor.ProcessAsync(audio, cancellationToken))
             {
                 var text = segment.Text.Trim();
                 var offset = sourceStart ?? TimeSpan.Zero;
-                if (text.Length > 0) cues.Add(new CaptionCue(segment.Start + offset, segment.End + offset, text));
+                if (text.Length > 0 && segment.End > segment.Start)
+                {
+                    words.Add(new CaptionWord(segment.Start + offset, segment.End + offset, text));
+                }
                 var transcriptionDuration = sourceLimit ?? source.Duration;
                 var fraction = transcriptionDuration <= TimeSpan.Zero ? 0.5 : Math.Clamp(segment.End.TotalSeconds / transcriptionDuration.TotalSeconds, 0, 1);
                 progress?.Report(new TranscriptionProgress(0.1 + (fraction * 0.9), $"Transcribing locally: {segment.End + offset:hh\\:mm\\:ss}"));
             }
 
-            if (cues.Count > 0)
+            if (words.Count > 0)
             {
-                await HighlightForgeLog.InfoAsync($"Local transcription produced {cues.Count} caption cues from audio stream {track.StreamIndex}.", cancellationToken);
+                var cues = CaptionDocument.GroupWords(words);
+                await HighlightForgeLog.InfoAsync($"Local transcription produced {words.Count} timed words in {cues.Count} caption cues from audio stream {track.StreamIndex}.", cancellationToken);
                 return cues;
             }
 
