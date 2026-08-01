@@ -13,9 +13,9 @@ public static class FfmpegRuntime
             Path.Combine(AppContext.BaseDirectory, "tools", "ffmpeg", executableName),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HighlightForge", "tools", "ffmpeg", executableName)
         };
+        if (additionalCandidates is not null) candidates.AddRange(additionalCandidates);
         candidates.AddRange(FindFromRegisteredPath(EnvironmentVariableTarget.User, executableName));
         candidates.AddRange(FindFromRegisteredPath(EnvironmentVariableTarget.Machine, executableName));
-        if (additionalCandidates is not null) candidates.AddRange(additionalCandidates);
         return candidates.FirstOrDefault(File.Exists) ?? Path.GetFileNameWithoutExtension(executableName);
     }
 

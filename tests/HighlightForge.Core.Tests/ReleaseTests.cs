@@ -34,6 +34,17 @@ public sealed class ReleaseTests : IDisposable
     }
 
     [Fact]
+    public async Task ModelPackCannotEscapeItsVersionDirectory()
+    {
+        var staged = Path.Combine(_directory, "staged-escape");
+        Directory.CreateDirectory(staged);
+        var manifest = new ModelPackManifest("balanced", "1.0.0", "Local model pack", [new ModelFile("..\\outside.bin", new string('0', 64), "MIT")]);
+        var manager = new ModelPackManager(Path.Combine(_directory, "packs"));
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => manager.InstallFromDirectoryAsync(manifest, staged));
+    }
+
+    [Fact]
     public void ShortPlanPreservesGameFrameOverBlurredVerticalBackground()
     {
         var arguments = RenderPlan.BuildArguments(new RenderRequest(RenderKind.Vertical, "source.mkv", "short.mp4", new AudioMixSettings()));

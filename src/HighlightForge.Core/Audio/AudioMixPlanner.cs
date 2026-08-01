@@ -11,6 +11,15 @@ public sealed record AudioMixSettings(
 
 public sealed record AudioMixPlan(IReadOnlyList<AudioTrack> InputTracks, AudioMixSettings Settings, bool UsesDiscreteTracks, string Explanation);
 
+public sealed record AudioLoudnessMeasurement(
+    int StreamIndex,
+    string DisplayName,
+    double IntegratedLufs,
+    double TruePeakDbtp,
+    double LoudnessRangeLu,
+    double ThresholdLufs,
+    double TargetOffsetLu);
+
 public static class AudioMixPlanner
 {
     public static AudioMixPlan Create(IReadOnlyList<AudioTrack> tracks, bool usesDiscreteTracks, AudioMixSettings? settings = null)
@@ -29,4 +38,22 @@ public static class AudioMixPlanner
 
     public static string BuildFinalLoudnessFilter(AudioMixSettings settings) =>
         $"loudnorm=I={settings.TargetIntegratedLufs.ToString(System.Globalization.CultureInfo.InvariantCulture)}:LRA=11:TP={settings.TruePeakDbtp.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+
+    public static string BuildMeasuredLoudnessFilter(AudioMixSettings settings, AudioLoudnessMeasurement measurement)
+    {
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        return $"loudnorm=I={settings.TargetIntegratedLufs.ToString(culture)}:LRA=11:TP={settings.TruePeakDbtp.ToString(culture)}" +
+            $":measured_I={measurement.IntegratedLufs.ToString(culture)}:measured_LRA={measurement.LoudnessRangeLu.ToString(culture)}" +
+            $":measured_TP={measurement.TruePeakDbtp.ToString(culture)}:measured_thresh={measurement.ThresholdLufs.ToString(culture)}" +
+            $":offset={measurement.TargetOffsetLu.ToString(culture)}:linear=true:print_format=summary";
+    }
+
+    public static string BuildDiscreteDuckingFilter(AudioTrack microphone, AudioTrack game, AudioMixSettings settings)
+    {
+        if (microphone.Role != AudioTrackRole.Microphone) throw new ArgumentException("A microphone track is required.", nameof(microphone));
+        if (game.Role != AudioTrackRole.Game) throw new ArgumentException("A game-audio track is required.", nameof(game));
+        return $"[0:{microphone.StreamIndex}]highpass=f=80,afftdn=nf=-25[mic];" +
+            $"[0:{game.StreamIndex}][mic]sidechaincompress=threshold=0.035:ratio=8:attack={settings.DuckingAttackMs}:release={settings.DuckingReleaseMs}[ducked];" +
+            "[ducked][mic]amix=inputs=2:normalize=0[mix]";
+    }
 }

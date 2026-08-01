@@ -40,7 +40,7 @@ public static class AudioTrackMapper
         {
             return new(track.StreamIndex, AudioTrackRole.Game, 0.92, "Track title identifies game or desktop audio.");
         }
-        if (ContainsAny(name, "mixed", "mix", "combined", "master", "all audio"))
+        if (ContainsAny(name, "mixed", "mix", "combined", "master", "main", "all audio"))
         {
             return new(track.StreamIndex, AudioTrackRole.Mixed, 0.90, "Track title indicates a combined mix.");
         }

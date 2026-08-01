@@ -13,7 +13,7 @@ public sealed class ProjectStoreTests : IDisposable
         var store = new ProjectStore(new ProjectPaths(_directory));
         var project = ProjectDocument.Create("Stream highlights", new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero)) with
         {
-            Sources = [new MediaSource(Guid.NewGuid(), @"D:\OBS\session.mkv", TimeSpan.FromMinutes(90), 1920, 1080, 60, [])]
+            Sources = [new MediaSource(Guid.NewGuid(), @"D:\OBS\session.mkv", TimeSpan.FromMinutes(90), 1920, 1080, 60, [], AudioRolesConfirmed: true)]
         };
 
         await store.SaveAsync(project);
@@ -22,6 +22,7 @@ public sealed class ProjectStoreTests : IDisposable
         Assert.NotNull(restored);
         Assert.Equal(project.Id, restored.Id);
         Assert.Equal(@"D:\OBS\session.mkv", restored.Sources.Single().AbsolutePath);
+        Assert.True(restored.Sources.Single().AudioRolesConfirmed);
         Assert.False(File.Exists(Path.Combine(_directory, "session.mkv")));
     }
 

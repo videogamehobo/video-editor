@@ -25,7 +25,8 @@ public sealed record MediaSource(
     int Width,
     int Height,
     double FramesPerSecond,
-    IReadOnlyList<AudioTrack> AudioTracks);
+    IReadOnlyList<AudioTrack> AudioTracks,
+    bool AudioRolesConfirmed = false);
 
 public sealed record AudioTrack(
     int StreamIndex,

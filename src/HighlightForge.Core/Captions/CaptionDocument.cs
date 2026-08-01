@@ -7,6 +7,21 @@ public sealed record CaptionCue(TimeSpan Start, TimeSpan End, string Text);
 
 public static class CaptionDocument
 {
+    public static IReadOnlyList<CaptionCue> UpdateCue(
+        IReadOnlyList<CaptionCue> cues,
+        int index,
+        TimeSpan start,
+        TimeSpan end,
+        string text)
+    {
+        if (index < 0 || index >= cues.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfLessThan(start, TimeSpan.Zero);
+        if (end <= start) throw new ArgumentException("A caption end time must be after its start time.", nameof(end));
+        var updated = cues.ToArray();
+        updated[index] = new CaptionCue(start, end, text.Trim());
+        return updated;
+    }
+
     public static string ToSrt(IReadOnlyList<CaptionCue> cues)
     {
         var builder = new StringBuilder();

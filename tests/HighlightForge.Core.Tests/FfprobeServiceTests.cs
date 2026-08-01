@@ -2,6 +2,7 @@ using HighlightForge.Media.Probe;
 using HighlightForge.Media.Audio;
 using HighlightForge.Media.Proxy;
 using HighlightForge.Media.Runtime;
+using HighlightForge.Core.Domain;
 
 namespace HighlightForge.Core.Tests;
 
@@ -79,6 +80,21 @@ public sealed class EditingCoreTests
         Assert.True(mapping.UsesDiscreteTracks);
         Assert.DoesNotContain(mapping.TracksForMix(), track => track.Role == HighlightForge.Core.Domain.AudioTrackRole.Mixed);
         Assert.Equal(2, mapping.TracksForMix().Count);
+    }
+
+    [Fact]
+    public void TrackMapperRecognizesTheDefaultObsMainTrackAsMixed()
+    {
+        var mapping = AudioTrackMapper.Suggest(
+        [
+            new(1, "Main", 2, 48000),
+            new(2, "Game Only", 2, 48000),
+            new(3, "Voice Only", 2, 48000)
+        ]);
+
+        Assert.Equal(AudioTrackRole.Mixed, mapping.Tracks.Single(track => track.StreamIndex == 1).Role);
+        Assert.Equal(AudioTrackRole.Game, mapping.Tracks.Single(track => track.StreamIndex == 2).Role);
+        Assert.Equal(AudioTrackRole.Microphone, mapping.Tracks.Single(track => track.StreamIndex == 3).Role);
     }
 
     [Fact]

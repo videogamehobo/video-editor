@@ -44,7 +44,7 @@
         </StackPanel>
       </Border>
 
-      <Grid x:Name="WorkspacePanel" Grid.Row="1" IsVisible="False" Margin="0,24,0,0" ColumnDefinitions="250,*,310" RowDefinitions="*,230" ColumnSpacing="14" RowSpacing="14">
+      <Grid x:Name="WorkspacePanel" Grid.Row="1" IsVisible="False" Margin="0,24,0,0" ColumnDefinitions="250,*,370" RowDefinitions="*,230" ColumnSpacing="14" RowSpacing="14">
         <Border Background="#15191F" CornerRadius="10" Padding="16">
           <StackPanel Spacing="12">
             <TextBlock Text="Project" FontSize="18" FontWeight="SemiBold" />
@@ -62,26 +62,99 @@
         </Border>
 
         <Border Grid.Column="2" Background="#15191F" CornerRadius="10" Padding="16">
-          <StackPanel Spacing="10">
-            <TextBlock Text="Local intelligence" FontSize="18" FontWeight="SemiBold" />
-            <ComboBox x:Name="AnalysisModeBox" SelectedIndex="1">
-              <ComboBoxItem Content="Fast" />
-              <ComboBoxItem Content="Balanced" />
-              <ComboBoxItem Content="Deep" />
-            </ComboBox>
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button x:Name="AnalyzeButton" Content="Analyze &amp; build draft" Click="Analyze_Click" />
-              <Button x:Name="CancelAnalysisButton" Content="Cancel" IsEnabled="False" Click="CancelAnalysis_Click" />
-            </StackPanel>
-            <ProgressBar x:Name="AnalysisProgressBar" Minimum="0" Maximum="100" Value="0" />
-            <TextBlock Text="Ranked candidates" FontWeight="SemiBold" Margin="0,5,0,0" />
-            <ListBox x:Name="CandidateList" MinHeight="105" MaxHeight="170" SelectionChanged="CandidateList_SelectionChanged" />
-            <TextBlock Text="Track inspector" FontWeight="SemiBold" Margin="0,5,0,0" />
-            <TextBlock x:Name="MediaDetailsText" TextWrapping="Wrap" Opacity="0.75" />
-            <TextBlock Text="Audio tracks" FontWeight="SemiBold" Margin="0,8,0,0" />
-            <TextBlock x:Name="AudioTracksText" TextWrapping="Wrap" Opacity="0.75" />
-            <TextBlock x:Name="ProjectStatusText" TextWrapping="Wrap" Opacity="0.55" Margin="0,8,0,0" />
-          </StackPanel>
+          <TabControl>
+            <TabItem Header="Highlights">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="10" Margin="0,12,0,0">
+                  <TextBlock Text="Local intelligence" FontSize="18" FontWeight="SemiBold" />
+                  <ComboBox x:Name="AnalysisModeBox" SelectedIndex="1">
+                    <ComboBoxItem Content="Fast" />
+                    <ComboBoxItem Content="Balanced" />
+                    <ComboBoxItem Content="Deep" />
+                  </ComboBox>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="AnalyzeButton" Content="Analyze &amp; build draft" Click="Analyze_Click" />
+                    <Button x:Name="CancelAnalysisButton" Content="Cancel" IsEnabled="False" Click="CancelAnalysis_Click" />
+                  </StackPanel>
+                  <ProgressBar x:Name="AnalysisProgressBar" Minimum="0" Maximum="100" Value="0" />
+                  <TextBlock Text="Ranked candidates" FontWeight="SemiBold" Margin="0,5,0,0" />
+                  <ListBox x:Name="CandidateList" MinHeight="105" MaxHeight="170" SelectionChanged="CandidateList_SelectionChanged" />
+                  <TextBlock Text="Track inspector" FontWeight="SemiBold" Margin="0,5,0,0" />
+                  <TextBlock x:Name="MediaDetailsText" TextWrapping="Wrap" Opacity="0.75" />
+                  <TextBlock Text="Audio tracks" FontWeight="SemiBold" Margin="0,8,0,0" />
+                  <TextBlock x:Name="AudioTracksText" TextWrapping="Wrap" Opacity="0.75" />
+                  <ComboBox x:Name="AudioTrackListBox" SelectionChanged="AudioTrackList_SelectionChanged" />
+                  <ComboBox x:Name="TrackRoleBox" SelectedIndex="0">
+                    <ComboBoxItem Content="Unassigned" />
+                    <ComboBoxItem Content="Mixed / Main" />
+                    <ComboBoxItem Content="Microphone / Voice" />
+                    <ComboBoxItem Content="Game audio" />
+                  </ComboBox>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Update role" Click="UpdateTrackRole_Click" />
+                    <Button Content="Confirm roles" Click="ConfirmTrackRoles_Click" />
+                  </StackPanel>
+                  <TextBlock x:Name="ProjectStatusText" TextWrapping="Wrap" Opacity="0.55" Margin="0,8,0,0" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Captions">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="9" Margin="0,12,0,0">
+                  <TextBlock Text="Local English captions" FontSize="18" FontWeight="SemiBold" />
+                  <TextBlock Text="Audio is extracted only to this project's disposable cache. Transcription runs on this device." TextWrapping="Wrap" Opacity="0.65" />
+                  <TextBlock x:Name="ModelStatusText" Text="Checking local model…" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="InstallModelButton" Content="Install selected model" Click="InstallModel_Click" />
+                    <Button x:Name="TranscribeButton" Content="Transcribe" Click="Transcribe_Click" />
+                    <Button x:Name="CancelCreatorButton" Content="Cancel" IsEnabled="False" Click="CancelCreator_Click" />
+                  </StackPanel>
+                  <ProgressBar x:Name="CreatorProgressBar" Minimum="0" Maximum="100" />
+                  <ListBox x:Name="CaptionList" MinHeight="120" MaxHeight="180" SelectionChanged="CaptionList_SelectionChanged" />
+                  <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <TextBox x:Name="CaptionStartTextBox" PlaceholderText="Start (hh:mm:ss.fff)" />
+                    <TextBox Grid.Column="1" x:Name="CaptionEndTextBox" PlaceholderText="End (hh:mm:ss.fff)" />
+                  </Grid>
+                  <TextBox x:Name="CaptionTextBox" PlaceholderText="Select a caption to edit" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="55" />
+                  <Button Content="Save caption edit" Click="UpdateCaption_Click" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Export SRT…" Click="ExportSrt_Click" />
+                    <Button Content="Export VTT…" Click="ExportVtt_Click" />
+                  </StackPanel>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Voice-over">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="9" Margin="0,12,0,0">
+                  <TextBlock Text="Voice-over guidance" FontSize="18" FontWeight="SemiBold" />
+                  <TextBlock Text="Suggested talking points appear for highlights without detected commentary. No synthetic voice is generated." TextWrapping="Wrap" Opacity="0.65" />
+                  <TextBlock Text="Suggestions" FontWeight="SemiBold" />
+                  <ListBox x:Name="VoiceoverSuggestionList" MinHeight="100" MaxHeight="150" />
+                  <Button x:Name="RecordVoiceoverButton" Content="Record microphone take" Click="RecordVoiceover_Click" />
+                  <TextBlock Text="Project takes" FontWeight="SemiBold" />
+                  <ListBox x:Name="VoiceoverTakeList" MinHeight="90" MaxHeight="140" />
+                  <Button Content="Use selected take" Click="SelectVoiceoverTake_Click" />
+                  <TextBlock Text="Takes are saved only inside the project takes folder." TextWrapping="Wrap" Opacity="0.55" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Audio">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="9" Margin="0,12,0,0">
+                  <TextBlock Text="Audio mastering" FontSize="18" FontWeight="SemiBold" />
+                  <TextBlock Text="Measure discrete microphone and game tracks, exclude the combined track, duck game audio during speech, and target −14 LUFS / −1 dBTP." TextWrapping="Wrap" Opacity="0.65" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="MeasureAudioButton" Content="Measure tracks" Click="MeasureAudio_Click" />
+                    <Button x:Name="CancelAudioButton" Content="Cancel" IsEnabled="False" Click="CancelCreator_Click" />
+                  </StackPanel>
+                  <ProgressBar x:Name="AudioProgressBar" Minimum="0" Maximum="100" />
+                  <ListBox x:Name="LoudnessList" MinHeight="100" MaxHeight="160" />
+                  <TextBlock x:Name="AudioPlanText" Text="Measure the selected tracks to create a conservative mastering plan." TextWrapping="Wrap" />
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+          </TabControl>
         </Border>
 
         <Border Grid.Row="1" Grid.ColumnSpan="3" Background="#15191F" CornerRadius="10" Padding="16">

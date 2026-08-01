@@ -20,7 +20,7 @@ public sealed class ModelPackManager
         var problems = new List<string>();
         foreach (var file in manifest.Files)
         {
-            var path = Path.Combine(packDirectory, file.RelativePath);
+            var path = ResolveWithin(packDirectory, file.RelativePath);
             if (!File.Exists(path))
             {
                 problems.Add($"Missing {file.RelativePath}");
@@ -40,14 +40,26 @@ public sealed class ModelPackManager
         Directory.CreateDirectory(destination);
         foreach (var file in manifest.Files)
         {
-            var sourceFile = Path.Combine(source, file.RelativePath);
+            var sourceFile = ResolveWithin(source, file.RelativePath);
             if (!File.Exists(sourceFile)) throw new FileNotFoundException("Staged model file is missing.", sourceFile);
-            var destinationFile = Path.Combine(destination, file.RelativePath);
+            var destinationFile = ResolveWithin(destination, file.RelativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destinationFile)!);
             File.Copy(sourceFile, destinationFile, overwrite: true);
         }
         await File.WriteAllTextAsync(Path.Combine(destination, "manifest.json"), JsonSerializer.Serialize(manifest, Options), cancellationToken);
         var status = await ValidateAsync(manifest, cancellationToken);
         if (!status.IsInstalled) throw new InvalidOperationException(string.Join("; ", status.Problems));
+    }
+
+    private static string ResolveWithin(string rootDirectory, string relativePath)
+    {
+        var root = Path.GetFullPath(rootDirectory)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var path = Path.GetFullPath(Path.Combine(root, relativePath));
+        if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException($"Model file path '{relativePath}' escapes its model-pack directory.");
+        }
+        return path;
     }
 }
