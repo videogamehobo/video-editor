@@ -2,7 +2,7 @@ namespace HighlightForge.Core.Domain;
 
 public static class ProjectSchema
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 }
 
 public sealed record ProjectDocument(
