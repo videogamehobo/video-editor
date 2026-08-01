@@ -1,0 +1,14 @@
+.vs/
+.idea/
+bin/
+obj/
+TestResults/
+artifacts/
+*.user
+*.suo
+*.db
+*.db-shm
+*.db-wal
+*.gheproj/
+*.cache/
+
