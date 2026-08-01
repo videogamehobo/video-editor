@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using HighlightForge.Core.Audio;
+using HighlightForge.Media.Runtime;
 
 namespace HighlightForge.Media.Render;
 
@@ -42,7 +43,7 @@ public sealed class RenderService
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(request.OutputPath))!);
         var startInfo = new ProcessStartInfo
         {
-            FileName = Environment.GetEnvironmentVariable("HIGHLIGHTFORGE_FFMPEG_PATH") is { Length: > 0 } ffmpeg ? ffmpeg : "ffmpeg",
+            FileName = FfmpegRuntime.ResolveFfmpegPath(),
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true

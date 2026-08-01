@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using HighlightForge.Core.Persistence;
+using HighlightForge.Media.Runtime;
 
 namespace HighlightForge.Media.Proxy;
 
@@ -37,6 +38,5 @@ public sealed class ProxyGenerationService
         "-c:v", "mpeg4", "-q:v", "6", "-an", "-movflags", "+faststart", request.OutputPath
     ];
 
-    private static string ResolveFfmpegPath() =>
-        Environment.GetEnvironmentVariable("HIGHLIGHTFORGE_FFMPEG_PATH") is { Length: > 0 } explicitPath ? explicitPath : "ffmpeg";
+    private static string ResolveFfmpegPath() => FfmpegRuntime.ResolveFfmpegPath();
 }

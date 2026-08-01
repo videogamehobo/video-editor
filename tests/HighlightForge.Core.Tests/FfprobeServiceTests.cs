@@ -1,6 +1,7 @@
 using HighlightForge.Media.Probe;
 using HighlightForge.Media.Audio;
 using HighlightForge.Media.Proxy;
+using HighlightForge.Media.Runtime;
 
 namespace HighlightForge.Core.Tests;
 
@@ -28,6 +29,24 @@ public sealed class FfprobeServiceTests
             track => Assert.Equal("Mixed", track.DisplayName),
             track => Assert.Equal("Microphone", track.DisplayName),
             track => Assert.Equal("Game", track.DisplayName));
+    }
+}
+
+public sealed class FfmpegRuntimeTests
+{
+    [Fact]
+    public void ResolverPrefersAnExplicitPathThenABundledPath()
+    {
+        Assert.Equal("C:\\tools\\ffprobe.exe", FfmpegRuntime.Resolve("ffprobe.exe", "C:\\tools\\ffprobe.exe"));
+        var bundled = Path.GetTempFileName();
+        try
+        {
+            Assert.Equal(bundled, FfmpegRuntime.Resolve("ffprobe.exe", null, [bundled]));
+        }
+        finally
+        {
+            File.Delete(bundled);
+        }
     }
 }
 

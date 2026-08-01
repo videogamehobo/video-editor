@@ -4,6 +4,7 @@ using Avalonia.Platform.Storage;
 using HighlightForge.Core.Domain;
 using HighlightForge.Core.Persistence;
 using HighlightForge.Media.Import;
+using HighlightForge.Media.Runtime;
 
 namespace HighlightForge.App;
 
@@ -47,7 +48,9 @@ public partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            StatusText.Text = $"Import failed: {exception.Message}";
+            StatusText.Text = exception.Message.Contains("FFmpeg is required", StringComparison.Ordinal)
+                ? $"Import needs setup: {FfmpegRuntime.MissingRuntimeMessage}"
+                : $"Import failed: {exception.Message}";
         }
     }
 }

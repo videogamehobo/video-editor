@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 using HighlightForge.Core.Domain;
+using HighlightForge.Media.Runtime;
 
 namespace HighlightForge.Media.Probe;
 
@@ -31,18 +32,28 @@ public sealed class FfprobeService
         startInfo.ArgumentList.Add("json");
         startInfo.ArgumentList.Add(absolutePath);
 
-        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start FFprobe.");
-        var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        var output = await outputTask;
-        var error = await errorTask;
-        if (process.ExitCode != 0)
+        Process process;
+        try
         {
-            throw new InvalidOperationException($"FFprobe could not inspect this recording: {error.Trim()}");
+            process = Process.Start(startInfo) ?? throw new InvalidOperationException("Unable to start FFprobe.");
         }
-
-        return Parse(absolutePath, output);
+        catch (System.ComponentModel.Win32Exception exception) when (exception.NativeErrorCode is 2 or 3)
+        {
+            throw new InvalidOperationException(FfmpegRuntime.MissingRuntimeMessage, exception);
+        }
+        using (process)
+        {
+            var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            var output = await outputTask;
+            var error = await errorTask;
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"FFprobe could not inspect this recording: {error.Trim()}");
+            }
+            return Parse(absolutePath, output);
+        }
     }
 
     public static MediaProbeResult Parse(string absolutePath, string ffprobeJson)
@@ -69,8 +80,7 @@ public sealed class FfprobeService
         return new MediaProbeResult(Path.GetFullPath(absolutePath), duration, width, height, fps, audioTracks);
     }
 
-    private static string ResolveFfprobePath() =>
-        Environment.GetEnvironmentVariable("HIGHLIGHTFORGE_FFPROBE_PATH") is { Length: > 0 } explicitPath ? explicitPath : "ffprobe";
+    private static string ResolveFfprobePath() => FfmpegRuntime.ResolveFfprobePath();
 
     private static TimeSpan ParseDuration(string? duration) =>
         double.TryParse(duration, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds)
