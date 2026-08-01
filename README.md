@@ -2,9 +2,17 @@
 
 HighlightForge is a Windows-first, privacy-first desktop editor for turning local OBS recordings into reviewable gaming highlights. It never sends footage or transcripts to a cloud API.
 
-## Current foundation
+## Current prototype
 
-The initial milestone establishes the .NET/Avalonia desktop shell, a versioned non-destructive project format backed by SQLite, an FFprobe media-probing boundary, and a separate analysis worker process.
+The desktop app can import OBS MKV/MP4/MOV recordings, preserve their source files and audio-track roles, open and save local `.gheproj` projects, preview recordings, and edit a non-destructive timeline. The local intelligence panel uses FFmpeg to measure commentary/game-audio dynamics and sparse scene changes, ranks explainable candidates, and builds an editable draft. Timeline edits support split, trim-to-playhead, reorder, ripple delete, undo/redo, and autosave.
+
+The analysis worker also exposes a local validation entry point:
+
+```powershell
+dotnet run --project src/HighlightForge.Worker -- --analyze-source <project-directory> <media-path> Balanced
+```
+
+Current intelligence is an offline heuristic prototype. The planned Whisper, YAMNet, Florence, and Phi model packs, caption/voice-over UI, production audio mastering, and complete export workflow remain under active development.
 
 ## Prerequisites
 

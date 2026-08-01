@@ -90,4 +90,15 @@ public sealed class EditingCoreTests
         Assert.Contains("scale=-2:540", arguments);
         Assert.Equal("cache/proxy.mp4", arguments[^1]);
     }
+
+    [Fact]
+    public void ProxyGenerationRejectsWritingOverTheOriginalRecording()
+    {
+        var source = Path.Combine(Path.GetTempPath(), "recording.mkv");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            ProxyGenerationService.BuildArguments(new ProxyRequest(Guid.NewGuid(), source, Path.Combine(Path.GetTempPath(), ".", "recording.mkv"))));
+
+        Assert.Contains("cannot overwrite the original recording", exception.Message, StringComparison.Ordinal);
+    }
 }

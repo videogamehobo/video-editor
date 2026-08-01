@@ -17,6 +17,7 @@ public sealed class ProxyGenerationService
 
     public static async Task GenerateAsync(ProxyRequest request, CancellationToken cancellationToken = default)
     {
+        MediaPathSafety.RequireSeparateOutput(request.SourcePath, request.OutputPath, "Proxy generation");
         var startInfo = new ProcessStartInfo
         {
             FileName = ResolveFfmpegPath(),
@@ -31,12 +32,16 @@ public sealed class ProxyGenerationService
         if (process.ExitCode != 0) throw new InvalidOperationException($"FFmpeg could not generate a proxy: {(await errorTask).Trim()}");
     }
 
-    public static IReadOnlyList<string> BuildArguments(ProxyRequest request) =>
-    [
-        "-y", "-i", request.SourcePath,
-        "-map", "0:v:0", "-vf", $"scale=-2:{request.Height}",
-        "-c:v", "mpeg4", "-q:v", "6", "-an", "-movflags", "+faststart", request.OutputPath
-    ];
+    public static IReadOnlyList<string> BuildArguments(ProxyRequest request)
+    {
+        MediaPathSafety.RequireSeparateOutput(request.SourcePath, request.OutputPath, "Proxy generation");
+        return
+        [
+            "-y", "-i", request.SourcePath,
+            "-map", "0:v:0", "-vf", $"scale=-2:{request.Height}",
+            "-c:v", "mpeg4", "-q:v", "6", "-an", "-movflags", "+faststart", request.OutputPath
+        ];
+    }
 
     private static string ResolveFfmpegPath() => FfmpegRuntime.ResolveFfmpegPath();
 }

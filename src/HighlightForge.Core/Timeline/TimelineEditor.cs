@@ -42,7 +42,7 @@ public static class TimelineEditor
     private static TimelineClip[] Reflow(IEnumerable<TimelineClip> clips)
     {
         var cursor = TimeSpan.Zero;
-        return clips.OrderBy(clip => clip.TimelineIn).Select(clip =>
+        return clips.Select(clip =>
         {
             var positioned = clip with { TimelineIn = cursor };
             cursor += clip.SourceOut - clip.SourceIn;

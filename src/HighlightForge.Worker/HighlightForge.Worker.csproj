@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\HighlightForge.Core\HighlightForge.Core.csproj" />
+    <ProjectReference Include="..\HighlightForge.Media\HighlightForge.Media.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>

@@ -21,6 +21,7 @@ public static class RenderPlan
 {
     public static IReadOnlyList<string> BuildArguments(RenderRequest request)
     {
+        MediaPathSafety.RequireSeparateOutput(request.SourcePath, request.OutputPath, "Export");
         var videoFilter = request.Kind == RenderKind.Vertical ? VerticalVideoFilter() : "null";
         return
         [
@@ -40,6 +41,7 @@ public sealed class RenderService
 {
     public static async Task RenderAsync(RenderRequest request, CancellationToken cancellationToken = default)
     {
+        MediaPathSafety.RequireSeparateOutput(request.SourcePath, request.OutputPath, "Export");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(request.OutputPath))!);
         var startInfo = new ProcessStartInfo
         {

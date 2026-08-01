@@ -43,6 +43,17 @@ public sealed class ReleaseTests : IDisposable
         Assert.Contains(arguments, argument => argument.StartsWith("loudnorm=I=-14", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ExportRejectsWritingOverTheOriginalRecording()
+    {
+        var source = Path.Combine(_directory, "original.mkv");
+        var request = new RenderRequest(RenderKind.LongForm, source, source, new AudioMixSettings());
+
+        var exception = Assert.Throws<InvalidOperationException>(() => RenderPlan.BuildArguments(request));
+
+        Assert.Contains("cannot overwrite the original recording", exception.Message, StringComparison.Ordinal);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_directory)) Directory.Delete(_directory, recursive: true);
