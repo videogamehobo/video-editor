@@ -1,4 +1,6 @@
 using HighlightForge.Media.Probe;
+using HighlightForge.Media.Audio;
+using HighlightForge.Media.Proxy;
 
 namespace HighlightForge.Core.Tests;
 
@@ -26,5 +28,33 @@ public sealed class FfprobeServiceTests
             track => Assert.Equal("Mixed", track.DisplayName),
             track => Assert.Equal("Microphone", track.DisplayName),
             track => Assert.Equal("Game", track.DisplayName));
+    }
+}
+
+public sealed class EditingCoreTests
+{
+    [Fact]
+    public void TrackMapperUsesDiscreteTracksAndExcludesTheMixedTrack()
+    {
+        var mapping = AudioTrackMapper.Suggest(
+        [
+            new(1, "Mixed", 2, 48000),
+            new(2, "Microphone", 1, 48000),
+            new(3, "Game", 2, 48000)
+        ]);
+
+        Assert.True(mapping.UsesDiscreteTracks);
+        Assert.DoesNotContain(mapping.TracksForMix(), track => track.Role == HighlightForge.Core.Domain.AudioTrackRole.Mixed);
+        Assert.Equal(2, mapping.TracksForMix().Count);
+    }
+
+    [Fact]
+    public void ProxyCommandCreatesAudioFreeDisposableMp4()
+    {
+        var arguments = ProxyGenerationService.BuildArguments(new ProxyRequest(Guid.NewGuid(), "source.mkv", "cache/proxy.mp4"));
+
+        Assert.Contains("-an", arguments);
+        Assert.Contains("scale=-2:540", arguments);
+        Assert.Equal("cache/proxy.mp4", arguments[^1]);
     }
 }

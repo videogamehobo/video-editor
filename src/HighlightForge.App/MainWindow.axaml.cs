@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using HighlightForge.Core.Domain;
 using HighlightForge.Core.Persistence;
+using HighlightForge.Media.Import;
 
 namespace HighlightForge.App;
 
@@ -27,5 +28,26 @@ public partial class MainWindow : Window
         var now = DateTimeOffset.UtcNow;
         await store.SaveAsync(ProjectDocument.Create("Untitled", now));
         StatusText.Text = $"Created a non-destructive project at {directory}";
+    }
+
+    private async void ImportRecording_Click(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose an OBS recording",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("Video recordings") { Patterns = ["*.mkv", "*.mp4", "*.mov"] }]
+        });
+        if (files.Count == 0) return;
+        try
+        {
+            var imported = await SourceImportService.ImportAsync(files[0].Path.LocalPath);
+            var tracks = string.Join(", ", imported.SuggestedTrackMapping.Suggestions.Select(track => $"{track.Role} ({track.Confidence:P0})"));
+            StatusText.Text = $"Imported {Path.GetFileName(imported.Source.AbsolutePath)} • {imported.Source.Width}×{imported.Source.Height} • suggested tracks: {tracks}";
+        }
+        catch (Exception exception)
+        {
+            StatusText.Text = $"Import failed: {exception.Message}";
+        }
     }
 }

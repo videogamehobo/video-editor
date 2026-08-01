@@ -17,7 +17,10 @@
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="540" Spacing="16">
         <TextBlock Text="Start with an OBS recording" FontSize="24" HorizontalAlignment="Center" />
         <TextBlock Text="HighlightForge will keep your original recordings untouched, inspect their separate audio tracks, and create a reviewable edit draft." TextWrapping="Wrap" TextAlignment="Center" Opacity="0.72" />
-        <Button Content="Create a local project" HorizontalAlignment="Center" Padding="24,12" Click="CreateProject_Click" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+          <Button Content="Create a local project" Padding="24,12" Click="CreateProject_Click" />
+          <Button Content="Import OBS recording" Padding="24,12" Click="ImportRecording_Click" />
+        </StackPanel>
         <TextBlock x:Name="StatusText" Text="Project format, media probe boundary, and local worker are ready." TextWrapping="Wrap" TextAlignment="Center" Opacity="0.55" />
       </StackPanel>
     </Border>
